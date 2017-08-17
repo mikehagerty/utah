@@ -1,0 +1,48 @@
+Y2000 (station) archive format
+Start       Fortran
+Col     Len Format  Algn Field       Data
+===     === ======  ===== ====      ==========================================
+1       5   A5      L   sta         5-letter station site code, left justified.
+6       2   A2      L   net         2-letter seismic network code.
+8       1   1X      L   blank       Blank
+9       1   A1      L   comp1       One letter station component code. 
+10      3   A3      L   chan        3-letter station component code.
+13      1   1X      L   blank       Blank
+14      2   A2      R   Prmk        P remark such as "IP".
+16      1   A1      L   PUpDown     P first motion.
+17      1   I1      L   PwtCode     Assigned P weight code.
+18      4   I4      L   year        Year.
+22      8   I8      L   moddhhmi    Month, day, hour and minute.
+30      5   F5.2    R   Psec        Second of P arrival. 
+35      4   F4.2    R   Prms        P travel time residual.
+39      3   F3.2    R   PwtUsed     P weight actually used. 
+42      5   F5.2    R   Ssec        Second of S arrival. 
+47      2   A2      R   Srmk        S remark such as "ES".
+49      1   1X      L   blank       Blank
+50      1   I1      L   SwtCode     Assigned S weight code.
+51      4   F4.2    R   Srms        S travel time residual.
+55      7   F7.2    R   Amp         Amplitude (Normally peak-to-peak).
+62      2   I2      R   AmpCode     Amp units code.  0=PP mm, 1=0 to peak mm (UCB), 2=digital counts. 
+64      3   F3.2    R   SwtUsed     S weight actually used.
+67      4   F4.2    R   Pdelay      P delay time.
+71      4   F4.2    R   Sdelay      S delay time.
+75      4   F4.1    R   Dist        Epicentral distance (km).
+79      3   F3.0    R   Angle       Emergence angle at source.
+82      1   I1      R   AmpMagC     Amplitude magnitude weight code.
+83      1   I1      R   DurMagC     Duration magnitude weight code.
+84      3   F3.2    R   PerMax      Period at which the amplitude was measured for this station.
+87      1   A1      R   StaRmk      1-letter station remark.
+88      4   F4.0    R   CodaDur     Coda duration in seconds.
+92      3   F3.0    R   Azim        Azimuth to station in degrees E of N.
+95      3   F3.2    L   DurMag      Duration magnitude for this station.
+98      3   F3.2    L   AmpMag      Amplitude magnitude for this station.
+101     4   F4.3    R   Pimport     Importance of P arrival.
+105     4   F4.3    R   Simport     Importance of S arrival.
+109     1   A1      L   DataSource  Data source code.
+110     1   A1      L   DurCode     Label code for duration magnitude from FC1 or FC2 command.
+111     1   A1      L   AmpLabel    Label code for amplitude magnitude from XC1 or XC2 command.
+112     2   A2      L   loc         2-letter station location code.
+114     2   I2      R   AmpType     Amplitude type 0=unspecified 1=Wood-Anderson 2=velocity 3=acceleration 4=no magnitude.
+116     3   A3      L   comp3       Alternate 3-letter component code (ie. USGS or SEED).
+119     1   A1      L   blank       X if station amplitude magnitude was not used in event magnitude.
+120     1   A1      L   blank       X if station duration magnitude was not used in event magnitude.  [ 120 is last filled column. ]
