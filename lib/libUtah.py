@@ -10,6 +10,10 @@ import collections
 import math
 import json
 
+from liblog import getLogger
+
+logger = getLogger()
+
 def x_to_a(field_len, x):
 
     if abs(x) >= math.pow(10., field_len - 1):
@@ -54,11 +58,26 @@ YFT EAST  YFT HHE WY 01
 YFT NORTH YFT HHN WY 01
 YFT AVE   YFT HHH WY 01
     '''
-    f=open(file, 'r')
-    lines=f.readlines()
+    fname = 'read_amps_scnl_map'
+    try:
+        f=open(file, 'r')
+        lines=f.readlines()
+    except (OSError, IOError) as e:
+        logger.error("%s.%s: Attempt to read amps_scnl_map file=[%s] gives error=[%s]" % (__name__, fname, file, e))
+        raise
+
+    if len(lines) == 0:
+        logger.error("%s.%s: amps_scnl_map file=[%s] appears to be empty!" % (__name__, fname, file))
+        exit(2)
+
     d = {}
     for line in lines:
-        (staIn, chanIn, sta, chan, net, loc) = line.split()
+        try:
+            (staIn, chanIn, sta, chan, net, loc) = line.split()
+        except ValueError:
+            logger.error("%s.%s: amps_scnl_map file=[%s] line=[%s] incorrect!" % (__name__, fname, file, line))
+            raise
+
         key = staIn + "-" + chanIn
         dd = {}
         dd['sta'] = sta
@@ -114,6 +133,7 @@ def read_json_scnl_map(file):
     return d
 
 def read_magfile(file):
+    fname = 'read_magfile'
     '''
 Event: 11121315063p
 
@@ -123,11 +143,20 @@ YFT      1.21361    1.54573    1.37967   1.94
 YNR      0.21966    0.22756    0.22361   2.10
 YPP    177.54710  112.07440  144.81075   3.14
     '''
-    f=open(file, 'r')
-    header = f.readline().strip()
-    f.readline()
-    f.readline()
-    lines=f.readlines()
+    try:
+        f=open(file, 'r')
+        header = f.readline().strip()
+        f.readline()
+        f.readline()
+        lines=f.readlines()
+    except (OSError, IOError) as e:
+        logger.error("%s.%s: Attempt to read amp file=[%s] gives error=[%s]" % (__name__, fname, file, e))
+        raise
+
+    if len(lines) == 0:
+        logger.error("%s.%s: amp file=[%s] appears to be empty!" % (__name__, fname, file))
+        exit(2)
+
     d = {}
     for line in lines:
         line = line.rstrip('\n\r')
@@ -178,10 +207,26 @@ def read_modUW1_file(file):
                          999 sec thereafter)
      52-56     I5        Peak-to-peak amplitude (in counts)
     '''
-    f=open(file, 'r')
-    header = f.readline().strip()
+    fname = 'read_modUW1_file'
+
     try:
-        year  = 2000 + int(header[0:2])
+        f=open(file, 'r')
+        header = f.readline().strip()
+        lines=f.readlines()
+    except (OSError, IOError) as e:
+        logger.error("%s.%s: Attempt to read modUW1 file=[%s] gives error=[%s]" % (__name__, fname, file, e))
+        raise
+
+    if len(lines) == 0:
+        logger.error("%s.%s: modUW1 file=[%s] appears to be empty!" % (__name__, fname, file))
+        exit(2)
+
+    try:
+        yy    = int(header[0:2])
+        if yy >= 80 and yy <= 99:
+            year = 1900 + yy
+        else:
+            year = 2000 + yy
         month = int(header[2:4])
         day   = int(header[4:6])
         hour  = int(header[6:8])
@@ -190,8 +235,6 @@ def read_modUW1_file(file):
         yyyymmddhhmi = '%4d%02d%02d%02d%02d' % (year, month, day, hour, minute)
     except Exception as e:
         raise
-
-    lines=f.readlines()
 
     d = {}
 
@@ -296,11 +339,20 @@ def write_y2000_phase(dformat, arrival):
     return
 
 def read_phases(file, dformat):
+    fname = 'read_phases'
     d=collections.OrderedDict()
-    f=open(file, 'r')
-    origin = f.readline().rstrip('\n\r')
-    lines=f.readlines()
-    #lines=f.readlines()[1:]
+    try:
+        f=open(file, 'r')
+        origin = f.readline().rstrip('\n\r')
+        lines=f.readlines()
+    except (OSError, IOError) as e:
+        logger.error("%s.%s: Attempt to read phase file=[%s] gives error=[%s]" % (__name__, fname, file, e))
+        raise
+
+    if len(lines) == 0:
+        logger.error("%s.%s: phase file=[%s] appears to be empty!" % (__name__, fname, file))
+        exit(2)
+
     for line in lines:
         line = line.rstrip('\n\r')
         if not line:
