@@ -13,16 +13,20 @@ from lib.liblog import getLogger
 
 logger = getLogger()
 
+debug = False
+
 def exit_now(msg):
     logger.error(msg)
     exit(2)
 
 def processCmdLine():
-    usage = "arc.py -e event_id"
+    usage = "arc.py -e event_id --path=/path/to/event [-d or --debug] \n     eg. >arc.py -e 11121315063 --path=/eq/legacy_data/UNGODLY/NEW"
     fname = "processCmdLine"
+    global debug
     event_id = None
+    path = None
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'e:h', ['help', 'event_id='])
+        opts, args = getopt.getopt(sys.argv[1:], 'e:p:dh', ['help', 'debug', 'event_id=', 'path='])
         if len(args) > 0:        # MTH: args is not used here, opts = list[tuple], eg [('-e', 1234567)]
             exit_now(usage)
     except getopt.GetoptError:   # Throw error if opt not in list above
@@ -35,6 +39,18 @@ def processCmdLine():
             except:
                 logger.error("%s: Unable to convert event_id=[%s] to integer" % (fname, arg))
                 exit_now(usage)
+        elif opt in ('-p', '--path'):
+            try:
+                path = arg
+            except:
+                logger.error("%s: Unable to read command line path=[%s]" % (fname, arg))
+                exit_now(usage)
+            if not os.path.exists(path) or not os.path.isdir(path):
+                logger.error("%s path=[%s] not a valid directory!" % (fname, path) )
+                exit(2)
+        elif opt in ('-d', '--debug'):
+            debug = True
+            logger.info("%s: Run in debug mode" % (fname))
         elif opt in ('-h', '--help'):
             logger.info("%s: This is where the help message goes" % (fname))
             exit_now(usage)
@@ -45,18 +61,37 @@ def processCmdLine():
     if event_id is None:
         logger.error("%s.%s Can't continue without valid event_id" % (__name__, fname) )
         exit_now(usage)
+    if path is None:
+        logger.error("%s.%s Can't continue without valid path" % (__name__, fname) )
+        exit_now(usage)
 
-    return event_id
+    return path, event_id
 
 def getFilenames(directory, event_id):
     fname = "getFilenames"
+    if directory[-1] == '/':
+        directory = directory[:-1]
+    yy = int(str(event_id)[0:2])
+    if yy >= 80:
+        year = yy + 1900
+    else:
+        year = yy + 2000
+
+    event_path = '%s/%s' % (directory, year)
+
+    if not os.path.exists(event_path) or not os.path.isdir(event_path):
+        logger.error("%s.%s event_id=[%d] event_path=[%s] is not a valid directory!" % \
+                    (__name__, fname, event_id, event_path) )
+        exit(2)
 
     files = {}
-    files['arc']  = '%s/arc2000' % (directory)
-    files['amps'] = '%s/ml_amps.%d' % (directory, event_id)
-    files['uw1']  = '%s/%dp' % (directory, event_id)
-    files['json_map'] = '%s/channelmap.%d.json' % (directory, event_id)
-    files['amps_map'] = '%s/channelmap.%d.amps' % (directory, event_id)
+    files['arc']  = '%s/arc2000' % (event_path)
+    files['amps'] = '%s/ml_amps.%d' % (event_path, event_id)
+    files['uw1']  = '%s/%dp' % (event_path, event_id)
+    files['json_map'] = '%s/channelmap.json' % (directory)
+    files['amps_map'] = '%s/channelmap.amps' % (directory)
+    #files['json_map'] = '%s/channelmap.%d.json' % (directory, event_id)
+    #files['amps_map'] = '%s/channelmap.%d.amps' % (directory, event_id)
 
     if not os.path.exists(directory):
         logger.error("%s event directory=[%s] not found!" % (fname, directory) )
@@ -72,10 +107,8 @@ def getFilenames(directory, event_id):
 
 def main():
 
-  debug = True
-
-  event_id = processCmdLine()
-  files = getFilenames('example_event', event_id)
+  (path, event_id) = processCmdLine()
+  files = getFilenames(path, event_id)
 
   y2000_format_file = 'format.Y2000_station_archive'
 
