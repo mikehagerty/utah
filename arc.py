@@ -35,7 +35,8 @@ def processCmdLine():
     for opt, arg in opts:        # MTH: now we split the opts tuple to get opt, arg
         if opt in ('-e', '--event_id'):
             try:
-                event_id = int(arg)
+                #event_id = int(arg)
+                event_id = arg
             except:
                 logger.error("%s: Unable to convert event_id=[%s] to integer" % (fname, arg))
                 exit_now(usage)
@@ -71,44 +72,45 @@ def getFilenames(directory, event_id):
     fname = "getFilenames"
     if directory[-1] == '/':
         directory = directory[:-1]
-    yy = int(str(event_id)[0:2])
+    #yy = int(str(event_id)[0:2])
+    yy = int(event_id[0:2])
     if yy >= 80:
         year = yy + 1900
     else:
         year = yy + 2000
 
-    event_path = '%s/%s' % (directory, year)
+    event_path = '%s/%s/%s' % (directory, year, event_id)
 
     if not os.path.exists(event_path) or not os.path.isdir(event_path):
-        logger.error("%s.%s event_id=[%d] event_path=[%s] is not a valid directory!" % \
+        logger.error("%s.%s event_id=[%s] event_path=[%s] is not a valid directory!" % \
                     (__name__, fname, event_id, event_path) )
         exit(2)
 
     files = {}
     files['arc']  = '%s/arc2000' % (event_path)
-    files['amps'] = '%s/ml_amps.%d' % (event_path, event_id)
-    files['uw1']  = '%s/%dp' % (event_path, event_id)
+    #files['amps'] = '%s/ml_amps.%s' % (event_path, event_id)
+    files['uw1']  = '%s/%sp' % (event_path, event_id)
     files['json_map'] = '%s/channelmap.json' % (directory)
     files['amps_map'] = '%s/channelmap.amps' % (directory)
-    #files['json_map'] = '%s/channelmap.%d.json' % (directory, event_id)
-    #files['amps_map'] = '%s/channelmap.%d.amps' % (directory, event_id)
-
-    if not os.path.exists(directory):
-        logger.error("%s event directory=[%s] not found!" % (fname, directory) )
-        exit(2)
 
     for key,val in files.iteritems():
         if not os.path.exists(val):
             logger.error("%s key=[%s] file=[%s] not found!" % (fname, key, val) )
             exit(2)
 
-    return files
+    ampFileExists = False
+    ampfile = '%s/ml_amps.%s' % (event_path, event_id)
+    if os.path.exists(ampfile):
+        files['amps'] = ampfile
+        ampFileExists = True
+
+    return files, ampFileExists
 
 
 def main():
 
   (path, event_id) = processCmdLine()
-  files = getFilenames(path, event_id)
+  (files, ampFileExists) = getFilenames(path, event_id)
 
   y2000_format_file = 'format.Y2000_station_archive'
 
@@ -117,7 +119,7 @@ def main():
 # 2. And use it to read in a Y2000 event archive file:
   (y2k, origin)  = read_phases(files['arc'], y2kformat)
 # 3. Read in amplitude file:
-  ml_amps = read_magfile(files['amps'])
+  #ml_amps = read_magfile(files['amps'])
 # 4. Read in modified UW1 pick file:
   (duw1, yyyymmddhhmi)  = read_modUW1_file(files['uw1'])
 # 5. Read in JSON SCNL Map - used to map original y2k sta to SCNL
@@ -143,6 +145,8 @@ def main():
 
 # Map the y2k sta to SCNL:
   for key, value in y2k.iteritems():
+    # [SOW] b. Remove any existing peak-to-peak (p-p) amplitudes in the Y2000 archive file.
+    value['Amp'] = 0.0
     scnl = None
     if key in json_map:
         scnl = json_map[key][0]
@@ -156,44 +160,45 @@ def main():
         value['scnl']= scnl['s'] + "." + scnl['c'] + "." + scnl['n'] + "." + scnl['l']
         y2k_scnl[value['scnl']] = value 
 
-  amps_map = read_amps_scnl_map(files['amps_map'])
-
-  amps_scnl=collections.OrderedDict()
+  if ampFileExists:
+    ml_amps = read_magfile(files['amps'])
+    amps_map = read_amps_scnl_map(files['amps_map'])
+    amps_scnl=collections.OrderedDict()
 # Map the amp sta North/East to SCNL:
-  for sta, value in ml_amps.iteritems():
-    for comp in "NORTH", "EAST", "AVE" :
-        k = sta + "-" + comp
-        if k in amps_map:
-            scnl = amps_map[k]['scnl']
-            key = "amp_%s" % comp.lower()
-            amps_scnl[scnl] = value[key]
+    for sta, value in ml_amps.iteritems():
+        for comp in "NORTH", "EAST", "AVE" :
+            k = sta + "-" + comp
+            if k in amps_map:
+                scnl = amps_map[k]['scnl']
+                key = "amp_%s" % comp.lower()
+                amps_scnl[scnl] = value[key]
+            else:
+                logger.warn("arc.py: Unable to locate [%s] in amps_map file=[%s]" % (k, files['amps_map']))
+
+# Merge amplitude measurements with y2k archive:
+    for scnl, value in amps_scnl.iteritems():
+        if scnl in y2k_scnl:
+            y2k_scnl[scnl]['Amp'] = value
         else:
-            logger.warn("arc.py: Unable to locate [%s] in amps_map file=[%s]" % (k, files['amps_map']))
+            #print "amp key=[%s] NOT found in y2k_scnl" % key
+            (sta, chan, net, loc) = scnl.split('.')
+            y2kline = new_y2k_line(y2kformat)
+            y2kline['sta']  = sta
+            y2kline['chan'] = chan
+            y2kline['net']  = net
+            y2kline['loc']  = loc
+            y2kline['year'] = origin[0:4] 
+            y2kline['moddhhmi'] = origin[4:12] 
+            y2kline['Psec'] = 0
+            y2kline['Amp'] = value 
+            y2kline['AmpCode'] = '0' 
+            y2kline['PwtCode'] = '4' 
+            #write_y2000_phase(y2kformat, y2kline)
+            y2k_scnl[scnl] = y2kline
 
   if debug:
     print '         1         2         3         4         5         6         7         8         9         C         D'
     print '1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345'
-
-# Merge amplitude measurements with y2k archive:
-  for scnl, value in amps_scnl.iteritems():
-    if scnl in y2k_scnl:
-        y2k_scnl[scnl]['Amp'] = value
-    else:
-        #print "amp key=[%s] NOT found in y2k_scnl" % key
-        (sta, chan, net, loc) = scnl.split('.')
-        y2kline = new_y2k_line(y2kformat)
-        y2kline['sta']  = sta
-        y2kline['chan'] = chan
-        y2kline['net']  = net
-        y2kline['loc']  = loc
-        y2kline['year'] = origin[0:4] 
-        y2kline['moddhhmi'] = origin[4:12] 
-        y2kline['Psec'] = 0
-        y2kline['Amp'] = value 
-        y2kline['AmpCode'] = '0' 
-        y2kline['PwtCode'] = '4' 
-        #write_y2000_phase(y2kformat, y2kline)
-        y2k_scnl[scnl] = y2kline
 
 # Print out y2k lines followed by coda shadow lines for same scnl 
 #   iff coda duration > 0 in y2k archive:
