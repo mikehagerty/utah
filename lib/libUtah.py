@@ -249,13 +249,29 @@ def read_modUW1_file(file):
         if not any(str.isdigit(c) for c in Ptime):
             continue
         else:
+            duration = 0
+            alpha = 0
+            logA0 = 0
+            beg = 0
+            end = 0
             try:
-                Ptime    = float(Ptime)
-                duration = int(line[26:30])
-                alpha    = float(line[31:36])
-                logA0    = float(line[37:42])
-                beg      = int(line[43:46])
-                end      = int(line[47:50])
+                Ptime = float(Ptime)
+                buf = line[26:30]
+                if any(str.isdigit(c) for c in buf):
+                    duration = int(buf)
+                buf = line[31:36]
+                if any(str.isdigit(c) for c in buf):
+                    alpha = float(buf)
+                buf = line[37:42]
+                if any(str.isdigit(c) for c in buf):
+                    logA0 = float(buf)
+                buf = line[43:46]
+                if any(str.isdigit(c) for c in buf):
+                    beg = int(buf)
+                buf = line[47:50]
+                if any(str.isdigit(c) for c in buf):
+                    end = int(buf)
+
                 if logA0 > 0:
                     dd = {}
                     dd['Ptime']    = Ptime

@@ -13,6 +13,10 @@ from lib.liblog import getLogger
 
 logger = getLogger()
 
+# If no path is passed in on the cmd line with the -p or --path option, 
+#  this default path will be used:
+DEFAULT_DATA_DIR_PATH = '/eq/legacy_data/UNGODLY/NEW'
+
 debug = False
 
 def exit_now(msg):
@@ -46,9 +50,6 @@ def processCmdLine():
             except:
                 logger.error("%s: Unable to read command line path=[%s]" % (fname, arg))
                 exit_now(usage)
-            if not os.path.exists(path) or not os.path.isdir(path):
-                logger.error("%s path=[%s] not a valid directory!" % (fname, path) )
-                exit(2)
         elif opt in ('-d', '--debug'):
             debug = True
             logger.info("%s: Run in debug mode" % (fname))
@@ -63,8 +64,11 @@ def processCmdLine():
         logger.error("%s.%s Can't continue without valid event_id" % (__name__, fname) )
         exit_now(usage)
     if path is None:
-        logger.error("%s.%s Can't continue without valid path" % (__name__, fname) )
-        exit_now(usage)
+        path = DEFAULT_DATA_DIR_PATH
+        logger.info("%s: No -p or --path cmd line opts --> use default path=[%s]" % (fname, path) )
+    if not os.path.exists(path) or not os.path.isdir(path):
+        logger.error("%s path=[%s] not a valid directory!" % (fname, path) )
+        exit(2)
 
     return path, event_id
 
@@ -118,11 +122,9 @@ def main():
   y2kformat = read_format(y2000_format_file)
 # 2. And use it to read in a Y2000 event archive file:
   (y2k, origin)  = read_phases(files['arc'], y2kformat)
-# 3. Read in amplitude file:
-  #ml_amps = read_magfile(files['amps'])
-# 4. Read in modified UW1 pick file:
+# 3. Read in modified UW1 pick file:
   (duw1, yyyymmddhhmi)  = read_modUW1_file(files['uw1'])
-# 5. Read in JSON SCNL Map - used to map original y2k sta to SCNL
+# 4. Read in JSON SCNL Map - used to map original y2k sta to SCNL
   json_map = read_json_scnl_map(files['json_map'])
 
   coda_scnl=collections.OrderedDict()
@@ -160,6 +162,7 @@ def main():
         value['scnl']= scnl['s'] + "." + scnl['c'] + "." + scnl['n'] + "." + scnl['l']
         y2k_scnl[value['scnl']] = value 
 
+# 5. Read in the amplitude file if it exists
   if ampFileExists:
     ml_amps = read_magfile(files['amps'])
     amps_map = read_amps_scnl_map(files['amps_map'])
