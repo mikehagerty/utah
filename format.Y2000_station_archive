@@ -11,8 +11,8 @@ Col     Len Format  Algn Field       Data
 14      2   A2      R   Prmk        P remark such as "IP".
 16      1   A1      L   PUpDown     P first motion.
 17      1   I1      L   PwtCode     Assigned P weight code.
-18      4   I4      L   year        Year.
-22      8   I8      L   moddhhmi    Month, day, hour and minute.
+18      4   I4      L   year        Year. ** MTH: moddhhmi was I8 but when mo < 10 it drops leading zero! **
+22      8   A8      L   moddhhmi    Month, day, hour and minute.
 30      5   F5.2    R   Psec        Second of P arrival. 
 35      4   F4.2    R   Prms        P travel time residual.
 39      3   F3.2    R   PwtUsed     P weight actually used. 
