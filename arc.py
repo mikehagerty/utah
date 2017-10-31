@@ -182,6 +182,8 @@ def main():
     for scnl, value in amps_scnl.iteritems():
         if scnl in y2k_scnl:
             y2k_scnl[scnl]['Amp'] = value
+            y2k_scnl[scnl]['AmpMagC'] = '0'    #Amplitude magnitude weight code
+            y2k_scnl[scnl]['AmpType'] = '1'    #1=Wood-Anderson
         else:
             #print "amp key=[%s] NOT found in y2k_scnl" % key
             (sta, chan, net, loc) = scnl.split('.')
@@ -196,6 +198,8 @@ def main():
             y2kline['Amp'] = value 
             y2kline['AmpCode'] = '0' 
             y2kline['PwtCode'] = '4' 
+            y2kline['AmpMagC'] = '0'    #Amplitude magnitude weight code
+            y2kline['AmpType'] = '1'    #1=Wood-Anderson
             #write_y2000_phase(y2kformat, y2kline)
             y2k_scnl[scnl] = y2kline
 
@@ -210,9 +214,14 @@ def main():
     write_y2000_phase(y2kformat, value)
     if value['CodaDur'] > 0 and scnl in coda_scnl:
         write_coda_shadow(coda_scnl[scnl], yyyymmddhhmi)
+    else:   # Print blank shadow line
+        printf("$\n")
+
+  # Shadow Archive terminator lines: blank + single "$" in col 1:
+  printf("\n")
+  printf("$")
 
   exit()
-
   return
 
 if __name__ == '__main__':

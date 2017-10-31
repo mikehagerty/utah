@@ -161,7 +161,13 @@ YPP    177.54710  112.07440  144.81075   3.14
     for line in lines:
         line = line.rstrip('\n\r')
         try:
-            (sta, amp_east, amp_north, amp_ave, mag) = line.split()
+            #(sta, amp_east, amp_north, amp_ave, mag) = line.split()
+            fields = line.split()
+            if len(fields) == 5:
+                (sta, amp_east, amp_north, amp_ave, mag) = fields
+            else:
+                (sta, amp_east, amp_north, amp_ave) = fields
+                mag = -999 # Flag no mag in amp file
             amp_east  = float(amp_east)
             amp_north = float(amp_north)
             amp_ave   = float(amp_ave)
