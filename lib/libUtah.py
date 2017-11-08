@@ -128,8 +128,23 @@ $ 201112131506  1.50  4.31  75  94
 
 
 def read_json_scnl_map(file):
+    fname = 'read_json_scnl_map'
     with open(file) as json_data:
         d = json.load(json_data)
+        keys = d.keys()
+        value = d[keys[0]]
+        if type(value) is dict:
+            pass
+        elif type(value) is list: # convert list-stype json map to dict
+            dd = {}
+            for key in keys:
+                dd[key]=d[key][0]
+            d = dd
+        else:
+            e = 'Attempt to read json_map file=[%s]. Map is not dict or list but unknown type!' % (file)
+            logger.error("%s.%s: %s" % (__name__, fname, e))
+            raise Exception(e)
+
     return d
 
 def read_magfile(file):
@@ -249,7 +264,8 @@ def read_modUW1_file(file):
         #print line
 #123456789012345678901234567890123456789012345678901234567890
 #MCID ?   0  64.38 0   0.00 393  1.84  5.47  70  90     0
-#MCU
+        if line[0:2] == 'c ':    # Comment lines start with 'c '
+            continue
         sta   = line[0:4].strip()
         Ptime = line[11:17]
         if not any(str.isdigit(c) for c in Ptime):

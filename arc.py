@@ -133,7 +133,7 @@ def main():
   for key, value in duw1.iteritems():
     scnl = None
     if key in json_map:
-        scnl = json_map[key][0]
+        scnl = json_map[key]
     else:
         logger.warn("arc.py: Unable to locate uw1 pick station=[%s] in json_map file=[%s]" % (key, files['json_map']))
     if scnl:
@@ -151,7 +151,7 @@ def main():
     value['Amp'] = 0.0
     scnl = None
     if key in json_map:
-        scnl = json_map[key][0]
+        scnl = json_map[key]
     else:
         logger.warn("arc.py: Unable to locate y2000 arc station=[%s] in json_map file=[%s]" % (key, files['json_map']))
     if scnl:
@@ -210,6 +210,7 @@ def main():
 # Print out y2k lines followed by coda shadow lines for same scnl 
 #   iff coda duration > 0 in y2k archive:
   print origin
+  printf("$\n")
   for scnl, value in y2k_scnl.iteritems():
     write_y2000_phase(y2kformat, value)
     if value['CodaDur'] > 0 and scnl in coda_scnl:
